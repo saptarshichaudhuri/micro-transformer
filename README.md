@@ -1,6 +1,7 @@
 # micro-transformer
 Micro-transformer implementation trained via distributed training from scratch
 
+```
 micro-transformer/
 ├── README.md                  # Project overview, setup instructions, usage examples
 ├── requirements.txt           # All dependencies with version specifications
@@ -52,3 +53,4 @@ micro-transformer/
     ├── data_exploration.ipynb # Dataset analysis
     ├── tokenizer_training.ipynb # Tokenizer development
     └── model_testing.ipynb    # Interactive model testing
+```
