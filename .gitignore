@@ -2,22 +2,76 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebooks
 .ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
 # Virtual Environment
 venv/
 env/
+ENV/
+.env
+.venv
 
-# Model Checkpoints
-checkpoints/
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Model & Data
 *.pt
+*.pth
 *.bin
-
-# Logs
-logs/
-*.log
+*.onnx
+*.model
+checkpoints/
 runs/
-
-# Data
+wandb/
 data/raw/
 data/processed/
+tokenizer_vocab/
+
+# Logs and results
+logs/
+*.log
+*.out
+*.err
+tb_logs/
+lightning_logs/
+
+# Azure related
+*.json.backup
+azure_credentials.txt
+azure_config.json
+
+# Credentials and secrets
+*.pem
+*.key
+*.crt
+*credentials*
+*secret*
+*api_key*
+
+# OS specific
+Thumbs.db
+.DS_Store
