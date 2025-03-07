@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints
+
+# Virtual Environment
+venv/
+env/
+
+# Model Checkpoints
+checkpoints/
+*.pt
+*.bin
+
+# Logs
+logs/
+*.log
+runs/
+
+# Data
+data/raw/
+data/processed/

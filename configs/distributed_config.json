@@ -1,0 +1,13 @@
+{
+    "data_parallel": {
+        "world_size": 2,
+        "backend": "nccl"
+    },
+    "pipeline_parallel": {
+        "num_stages": 2,
+        "num_microbatches": 4
+    },
+    "tensor_parallel": {
+        "num_gpus": 2
+    }
+}

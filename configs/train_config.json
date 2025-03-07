@@ -1,0 +1,11 @@
+{
+    "batch_size": 64,
+    "learning_rate": 5e-05,
+    "weight_decay": 0.01,
+    "max_steps": 10000,
+    "warmup_steps": 1000,
+    "eval_steps": 500,
+    "save_steps": 1000,
+    "gradient_accumulation_steps": 1,
+    "fp16": true
+}
