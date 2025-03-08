@@ -54,3 +54,11 @@ micro-transformer/
     ├── tokenizer_training.ipynb # Tokenizer development
     └── model_testing.ipynb    # Interactive model testing
 ```
+
+
+## Data Preparation
+To prepare the TinyStories dataset:
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run: `python scripts/prepare_data.py --max_samples 50000`
+3. The processed data will be available in `data/processed/`

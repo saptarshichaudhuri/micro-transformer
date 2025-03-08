@@ -51,6 +51,11 @@ data/raw/
 data/processed/
 tokenizer_vocab/
 
+data/raw/
+data/processed/
+*.txt
+*.jsonl
+
 # Logs and results
 logs/
 *.log

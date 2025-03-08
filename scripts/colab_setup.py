@@ -1,16 +1,24 @@
 """
 Usage: in your notebooks, you can simply import and use these functions:
 
-from scripts.colab_setup import check_gpu, mount_drive, install_packages, sync_repo
+1. Open a new Colab notebook
+2. Run a cell to clone your GitHub repository:
+
+!git clone https://github.com/yourusername/micro-transformer.git
+%cd micro-transformer
+
+3. Then import and run your setup script:
+from scripts.colab_setup import check_gpu, install_packages, sync_repo
 
 # Check GPU
 check_gpu()
 
-# Mount Drive
-mount_drive('/content/drive/MyDrive/micro-transformer')
-
 # Install packages
 install_packages()
+
+# Mount Drive
+# You don't necessarily need to mount Google Drive unless you want to persist data between Colab sessions.
+mount_drive('/content/drive/MyDrive/micro-transformer')
 
 # Sync with repo
 sync_repo('https://github.com/yourusername/micro-transformer.git', '/content/micro-transformer')
