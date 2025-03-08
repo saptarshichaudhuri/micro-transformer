@@ -1,9 +1,9 @@
-# model/transformer.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from .layers import TransformerBlock, LayerNorm, TokenEmbedding, PositionEmbedding
+from .config import ModelConfig
 
 
 class MicroTransformer(nn.Module):
@@ -14,52 +14,78 @@ class MicroTransformer(nn.Module):
     and causal language modeling tasks.
     
     Args:
-        vocab_size (int): Size of vocabulary
-        max_seq_len (int): Maximum sequence length
-        embed_dim (int): Embedding dimension (128 in your case)
-        num_heads (int): Number of attention heads (4 in your case)
-        num_layers (int): Number of transformer layers (4 in your case)
-        ff_dim (int): Feed-forward hidden dimension (512 in your case)
-        dropout (float): Dropout probability (0.1 in your case)
+        config (ModelConfig, optional): Configuration for the model. If None, default config is used.
+        vocab_size (int, optional): Size of vocabulary. Overrides config if provided.
+        max_seq_len (int, optional): Maximum sequence length. Overrides config if provided.
+        embed_dim (int, optional): Embedding dimension. Overrides config if provided.
+        num_heads (int, optional): Number of attention heads. Overrides config if provided.
+        num_layers (int, optional): Number of transformer layers. Overrides config if provided.
+        ff_dim (int, optional): Feed-forward hidden dimension. Overrides config if provided.
+        dropout (float, optional): Dropout probability. Overrides config if provided.
+        tie_weights (bool, optional): Whether to tie embedding and output weights. Overrides config if provided.
     """
     def __init__(
         self,
-        vocab_size=5000,
-        max_seq_len=512,
-        embed_dim=128,
-        num_heads=4,
-        num_layers=4,
-        ff_dim=512,
-        dropout=0.1
+        config=None,
+        vocab_size=None,
+        max_seq_len=None,
+        embed_dim=None,
+        num_heads=None,
+        num_layers=None,
+        ff_dim=None,
+        dropout=None,
+        tie_weights=None
     ):
         super().__init__()
         
-        # Save configuration
-        self.vocab_size = vocab_size
-        self.max_seq_len = max_seq_len
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.num_layers = num_layers
+        # Use provided config or create default
+        if config is None:
+            config = ModelConfig()
+        
+        # Override config with any explicitly provided parameters
+        override_params = {}
+        if vocab_size is not None: override_params['vocab_size'] = vocab_size
+        if max_seq_len is not None: override_params['max_seq_len'] = max_seq_len
+        if embed_dim is not None: override_params['embed_dim'] = embed_dim
+        if num_heads is not None: override_params['num_heads'] = num_heads
+        if num_layers is not None: override_params['num_layers'] = num_layers
+        if ff_dim is not None: override_params['ff_dim'] = ff_dim
+        if dropout is not None: override_params['dropout'] = dropout
+        if tie_weights is not None: override_params['tie_weights'] = tie_weights
+        
+        if override_params:
+            config = config.update(**override_params)
+        
+        # Store configuration
+        self.config = config
+        
+        # Extract parameters from config for convenience
+        self.vocab_size = config.vocab_size
+        self.max_seq_len = config.max_seq_len
+        self.embed_dim = config.embed_dim
+        self.num_heads = config.num_heads
+        self.num_layers = config.num_layers
         
         # Embeddings
-        self.token_embedding = TokenEmbedding(vocab_size, embed_dim)
-        self.position_embedding = PositionEmbedding(max_seq_len, embed_dim)
-        self.embedding_dropout = nn.Dropout(dropout)
+        self.token_embedding = TokenEmbedding(config.vocab_size, config.embed_dim)
+        self.position_embedding = PositionEmbedding(config.max_seq_len, config.embed_dim)
+        self.embedding_dropout = nn.Dropout(config.dropout)
         
         # Transformer blocks
         self.blocks = nn.ModuleList([
-            TransformerBlock(embed_dim, num_heads, ff_dim, dropout)
-            for _ in range(num_layers)
+            TransformerBlock(config.embed_dim, config.num_heads, config.ff_dim, config.dropout)
+            for _ in range(config.num_layers)
         ])
         
         # Final layer norm
-        self.norm = LayerNorm(embed_dim)
+        self.norm = LayerNorm(config.embed_dim)
         
         # Output projection (next token prediction head)
-        self.lm_head = nn.Linear(embed_dim, vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.embed_dim, config.vocab_size, bias=False)
         
-        # Tie weights between token embedding and output projection
-        self.lm_head.weight = self.token_embedding.embedding.weight
+        # Tie weights between token embedding and output projection if specified
+        if config.tie_weights:
+            self.lm_head.weight = self.token_embedding.embedding.weight
         
         # Initialize parameters
         self.apply(self._init_weights)
@@ -196,3 +222,64 @@ class MicroTransformer(nn.Module):
                 generated = torch.cat((generated, next_token), dim=1)
                 
         return generated
+    
+    @classmethod
+    def from_config(cls, config):
+        """
+        Create a MicroTransformer model from a configuration.
+        
+        Args:
+            config (ModelConfig or dict): Model configuration
+            
+        Returns:
+            MicroTransformer: Model initialized with the given configuration
+        """
+        if not isinstance(config, ModelConfig):
+            config = ModelConfig.from_dict(config)
+        
+        return cls(config=config)
+    
+    @classmethod
+    def from_preset(cls, preset_name):
+        """
+        Create a MicroTransformer model from a preset configuration.
+        
+        Args:
+            preset_name (str): Name of the preset configuration
+            
+        Returns:
+            MicroTransformer: Model initialized with the preset configuration
+        """
+        config = ModelConfig.from_preset(preset_name)
+        return cls(config=config)
+    
+    def save_config(self, config_file):
+        """
+        Save the model configuration to a file.
+        
+        Args:
+            config_file (str): Path to save the configuration
+        """
+        self.config.save(config_file)
+    
+    @classmethod
+    def load_config(cls, config_file):
+        """
+        Load a model configuration from a file.
+        
+        Args:
+            config_file (str): Path to the configuration file
+            
+        Returns:
+            ModelConfig: Loaded configuration
+        """
+        return ModelConfig.load(config_file)
+    
+    def get_config_summary(self):
+        """
+        Get a string summary of the model configuration.
+        
+        Returns:
+            str: Configuration summary
+        """
+        return self.config.get_param_count_summary()
