@@ -39,12 +39,17 @@ class TransformerDataset(Dataset):
                 text = f.read()
                 self.samples = [t.strip() for t in text.split('\n\n') if t.strip()]
         
+        # Bug 1001: Making change to the below code to read tokenizer.encode output which is a dict
+        # For now only extracting the input_ids from the dict
         # Tokenize all samples and create a single long sequence
         self.tokenized_data = []
         for sample in self.samples:
-            # Add special tokens (if your tokenizer uses them)
-            tokens = self.tokenizer.encode(sample)
-            self.tokenized_data.extend(tokens)
+             # Use the tokenizer and extract input_ids from the returned dict
+            tokens_dict = self.tokenizer.encode(sample)
+            # Extract input_ids from the dictionary
+            input_ids = tokens_dict["input_ids"]
+            # Add the input_ids to our sequence
+            self.tokenized_data.extend(input_ids)
             
         # Calculate the number of sequences we can create
         self.num_sequences = max(0, len(self.tokenized_data) - self.seq_length)
