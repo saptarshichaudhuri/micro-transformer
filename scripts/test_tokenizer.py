@@ -125,3 +125,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    
+## python scripts\test_tokenizer.py --tokenizer_path micro_tokenization\pretrained --text "This is a custom test text."
+
+"""_summary_
+For VS Code debugging, create a .vscode/launch.json with this configuration:
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Test Tokenizer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/test_tokenizer.py",
+            "args": ["--tokenizer_path", "${workspaceFolder}/micro_tokenization", "--text", "Optional test text"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
+"""
+
