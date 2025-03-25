@@ -1,0 +1,153 @@
+# scripts/test_integration.py
+import os
+import sys
+import torch
+from pathlib import Path
+
+# Add the parent directory to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from model.transformer import MicroTransformer
+from model.config import ModelConfig
+from model.utils import count_parameters
+from micro_tokenization.tokenizer import MicroTransformerTokenizer
+from data import dataloader
+from training.trainer import Trainer
+from training.checkpointing import CheckpointManager, EarlyStopping
+from training.metrics import MetricsTracker
+
+def test_integration():
+    print("Running End-to-End Integration Test...")
+    
+    # Paths
+    data_dir = Path("data/processed/small")  # Use small dataset
+    tokenizer_path = Path("micro_tokenization/pretrained")
+    output_dir = Path("test_integration")
+    output_dir.mkdir(exist_ok=True)
+    
+    # 1. Load tokenizer
+    print("\n1. Loading tokenizer...")
+    tokenizer = MicroTransformerTokenizer.from_pretrained(tokenizer_path)
+    print(f"Tokenizer loaded with vocabulary size: {tokenizer.get_vocab_size()}")
+    
+    # 2. Create model
+    print("\n2. Creating model...")
+    model_config = ModelConfig.from_preset("tiny")
+    model = MicroTransformer(config=model_config)
+    print(f"Model created with {count_parameters(model):,} parameters")
+    
+    # 3. Create dataloaders
+    print("\n3. Creating dataloaders...")
+    try:
+        train_path = data_dir / "train.jsonl"
+        val_path = data_dir / "validation.jsonl"
+        
+        if not train_path.exists() or not val_path.exists():
+            print(f"Dataset files not found, using dummy data instead.")
+            # Create dummy data
+            from torch.utils.data import DataLoader, TensorDataset
+            
+            batch_size, seq_len = 4, 32
+            dummy_inputs = torch.randint(0, model.vocab_size, (20, seq_len))
+            dummy_masks = torch.ones_like(dummy_inputs)
+            dummy_labels = torch.randint(0, model.vocab_size, (20, seq_len))
+            
+            dummy_dataset = TensorDataset(dummy_inputs, dummy_masks, dummy_labels)
+            
+            train_loader = DataLoader(
+                dummy_dataset, batch_size=batch_size, shuffle=True,
+                collate_fn=lambda batch: {
+                    "input_ids": torch.stack([x[0] for x in batch]),
+                    "attention_mask": torch.stack([x[1] for x in batch]),
+                    "labels": torch.stack([x[2] for x in batch])
+                }
+            )
+            val_loader = train_loader  # Use same data for validation in test
+        else:
+            train_loader, val_loader = dataloader.create_dataloaders(
+                train_path=train_path,
+                val_path=val_path,
+                tokenizer=tokenizer,
+                batch_size=4,  # Small batch for testing
+                seq_length=32,  # Shorter sequences for testing
+                num_workers=0   # No extra workers for testing
+            )
+        
+        print(f"Created dataloaders with {len(train_loader)} training batches")
+        
+        # 4. Create metrics tracker
+        print("\n4. Creating metrics tracker...")
+        metrics = MetricsTracker()
+        
+        # 5. Create checkpoint manager
+        print("\n5. Creating checkpoint manager...")
+        checkpoint_manager = CheckpointManager(
+            output_dir=str(output_dir / "checkpoints"),
+            model=model,
+            save_interval=5
+        )
+        
+        # 6. Create early stopping
+        print("\n6. Setting up early stopping...")
+        early_stopping = EarlyStopping(patience=3)
+        
+        # 7. Create trainer
+        print("\n7. Creating trainer...")
+        trainer = Trainer(
+            model=model,
+            train_dataloader=train_loader,
+            val_dataloader=val_loader,
+            config={
+                "learning_rate": 1e-4,
+                "weight_decay": 0.01,
+                "fp16": False,  # Disable for testing
+                "gradient_accumulation_steps": 1,
+                "log_interval": 1,
+                "eval_interval": 2,
+                "save_interval": 5
+            },
+            output_dir=str(output_dir)
+        )
+        
+        # 8. Run one evaluation pass
+        print("\n8. Running evaluation...")
+        val_loss, val_ppl = trainer.evaluate()
+        print(f"Initial validation loss: {val_loss:.4f}, perplexity: {val_ppl:.2f}")
+        metrics.update({"val_loss": val_loss, "val_ppl": val_ppl})
+        
+        # 9. Train for one epoch
+        print("\n9. Training for one mini-epoch (2 steps)...")
+        # Only train for 2 steps to keep test short
+        original_len = len(train_loader)
+        train_loader.num_batches = min(2, original_len)  # Limit to 2 batches for test
+        
+        epoch_loss = trainer._train_epoch()
+        print(f"Training loss: {epoch_loss:.4f}")
+        metrics.update({"train_loss": epoch_loss})
+        
+        # 10. Save checkpoint
+        print("\n10. Saving checkpoint...")
+        checkpoint_path = checkpoint_manager.save(
+            global_step=trainer.global_step,
+            epoch=trainer.epoch,
+            metrics=metrics.get_all_averages(),
+            is_best=True
+        )
+        print(f"Checkpoint saved to: {checkpoint_path}")
+        
+        # 11. Generate text sample
+        print("\n11. Testing text generation...")
+        # This would normally use tokenizer to prepare input and decode output
+        sample_ids = torch.randint(0, model.vocab_size, (1, 10)).to(trainer.device)
+        generated_ids = model.generate(sample_ids, max_length=5)
+        print(f"Generated sequence shape: {generated_ids.shape}")
+        
+        print("\nIntegration test completed successfully!")
+    
+    except Exception as e:
+        print(f"Error during integration test: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    test_integration()

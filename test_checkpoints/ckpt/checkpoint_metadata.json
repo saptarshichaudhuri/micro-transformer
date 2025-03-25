@@ -1,0 +1,8 @@
+{
+  "checkpoints": [
+    "test_checkpoints\\ckpt\\checkpoint-3.pt"
+  ],
+  "best_checkpoint": "test_checkpoints\\ckpt\\checkpoint-best.pt",
+  "best_metric": 2.5,
+  "last_checkpoint": "test_checkpoints\\ckpt\\checkpoint-latest.pt"
+}
